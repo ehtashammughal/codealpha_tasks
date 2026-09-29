@@ -36,8 +36,19 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
       defaultValue: currentDateAndTime);
+  static const VerificationMeta _isFavoriteMeta =
+      const VerificationMeta('isFavorite');
   @override
-  List<GeneratedColumn> get $columns => [id, content, author, fetchedAt];
+  late final GeneratedColumn<bool> isFavorite = GeneratedColumn<bool>(
+      'is_favorite', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_favorite" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, content, author, fetchedAt, isFavorite];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -67,6 +78,12 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
       context.handle(_fetchedAtMeta,
           fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta));
     }
+    if (data.containsKey('is_favorite')) {
+      context.handle(
+          _isFavoriteMeta,
+          isFavorite.isAcceptableOrUnknown(
+              data['is_favorite']!, _isFavoriteMeta));
+    }
     return context;
   }
 
@@ -88,6 +105,8 @@ class $QuotesTable extends Quotes with TableInfo<$QuotesTable, Quote> {
           .read(DriftSqlType.string, data['${effectivePrefix}author'])!,
       fetchedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}fetched_at'])!,
+      isFavorite: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_favorite'])!,
     );
   }
 
@@ -102,11 +121,13 @@ class Quote extends DataClass implements Insertable<Quote> {
   final String content;
   final String author;
   final DateTime fetchedAt;
+  final bool isFavorite;
   const Quote(
       {required this.id,
       required this.content,
       required this.author,
-      required this.fetchedAt});
+      required this.fetchedAt,
+      required this.isFavorite});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -114,6 +135,7 @@ class Quote extends DataClass implements Insertable<Quote> {
     map['content'] = Variable<String>(content);
     map['author'] = Variable<String>(author);
     map['fetched_at'] = Variable<DateTime>(fetchedAt);
+    map['is_favorite'] = Variable<bool>(isFavorite);
     return map;
   }
 
@@ -123,6 +145,7 @@ class Quote extends DataClass implements Insertable<Quote> {
       content: Value(content),
       author: Value(author),
       fetchedAt: Value(fetchedAt),
+      isFavorite: Value(isFavorite),
     );
   }
 
@@ -134,6 +157,7 @@ class Quote extends DataClass implements Insertable<Quote> {
       content: serializer.fromJson<String>(json['content']),
       author: serializer.fromJson<String>(json['author']),
       fetchedAt: serializer.fromJson<DateTime>(json['fetchedAt']),
+      isFavorite: serializer.fromJson<bool>(json['isFavorite']),
     );
   }
   @override
@@ -144,16 +168,22 @@ class Quote extends DataClass implements Insertable<Quote> {
       'content': serializer.toJson<String>(content),
       'author': serializer.toJson<String>(author),
       'fetchedAt': serializer.toJson<DateTime>(fetchedAt),
+      'isFavorite': serializer.toJson<bool>(isFavorite),
     };
   }
 
   Quote copyWith(
-          {int? id, String? content, String? author, DateTime? fetchedAt}) =>
+          {int? id,
+          String? content,
+          String? author,
+          DateTime? fetchedAt,
+          bool? isFavorite}) =>
       Quote(
         id: id ?? this.id,
         content: content ?? this.content,
         author: author ?? this.author,
         fetchedAt: fetchedAt ?? this.fetchedAt,
+        isFavorite: isFavorite ?? this.isFavorite,
       );
   Quote copyWithCompanion(QuotesCompanion data) {
     return Quote(
@@ -161,6 +191,8 @@ class Quote extends DataClass implements Insertable<Quote> {
       content: data.content.present ? data.content.value : this.content,
       author: data.author.present ? data.author.value : this.author,
       fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+      isFavorite:
+          data.isFavorite.present ? data.isFavorite.value : this.isFavorite,
     );
   }
 
@@ -170,13 +202,14 @@ class Quote extends DataClass implements Insertable<Quote> {
           ..write('id: $id, ')
           ..write('content: $content, ')
           ..write('author: $author, ')
-          ..write('fetchedAt: $fetchedAt')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('isFavorite: $isFavorite')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, content, author, fetchedAt);
+  int get hashCode => Object.hash(id, content, author, fetchedAt, isFavorite);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -184,7 +217,8 @@ class Quote extends DataClass implements Insertable<Quote> {
           other.id == this.id &&
           other.content == this.content &&
           other.author == this.author &&
-          other.fetchedAt == this.fetchedAt);
+          other.fetchedAt == this.fetchedAt &&
+          other.isFavorite == this.isFavorite);
 }
 
 class QuotesCompanion extends UpdateCompanion<Quote> {
@@ -192,17 +226,20 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
   final Value<String> content;
   final Value<String> author;
   final Value<DateTime> fetchedAt;
+  final Value<bool> isFavorite;
   const QuotesCompanion({
     this.id = const Value.absent(),
     this.content = const Value.absent(),
     this.author = const Value.absent(),
     this.fetchedAt = const Value.absent(),
+    this.isFavorite = const Value.absent(),
   });
   QuotesCompanion.insert({
     this.id = const Value.absent(),
     required String content,
     required String author,
     this.fetchedAt = const Value.absent(),
+    this.isFavorite = const Value.absent(),
   })  : content = Value(content),
         author = Value(author);
   static Insertable<Quote> custom({
@@ -210,12 +247,14 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     Expression<String>? content,
     Expression<String>? author,
     Expression<DateTime>? fetchedAt,
+    Expression<bool>? isFavorite,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (content != null) 'content': content,
       if (author != null) 'author': author,
       if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (isFavorite != null) 'is_favorite': isFavorite,
     });
   }
 
@@ -223,12 +262,14 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
       {Value<int>? id,
       Value<String>? content,
       Value<String>? author,
-      Value<DateTime>? fetchedAt}) {
+      Value<DateTime>? fetchedAt,
+      Value<bool>? isFavorite}) {
     return QuotesCompanion(
       id: id ?? this.id,
       content: content ?? this.content,
       author: author ?? this.author,
       fetchedAt: fetchedAt ?? this.fetchedAt,
+      isFavorite: isFavorite ?? this.isFavorite,
     );
   }
 
@@ -247,6 +288,9 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
     if (fetchedAt.present) {
       map['fetched_at'] = Variable<DateTime>(fetchedAt.value);
     }
+    if (isFavorite.present) {
+      map['is_favorite'] = Variable<bool>(isFavorite.value);
+    }
     return map;
   }
 
@@ -256,7 +300,8 @@ class QuotesCompanion extends UpdateCompanion<Quote> {
           ..write('id: $id, ')
           ..write('content: $content, ')
           ..write('author: $author, ')
-          ..write('fetchedAt: $fetchedAt')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('isFavorite: $isFavorite')
           ..write(')'))
         .toString();
   }
@@ -279,12 +324,14 @@ typedef $$QuotesTableCreateCompanionBuilder = QuotesCompanion Function({
   required String content,
   required String author,
   Value<DateTime> fetchedAt,
+  Value<bool> isFavorite,
 });
 typedef $$QuotesTableUpdateCompanionBuilder = QuotesCompanion Function({
   Value<int> id,
   Value<String> content,
   Value<String> author,
   Value<DateTime> fetchedAt,
+  Value<bool> isFavorite,
 });
 
 class $$QuotesTableFilterComposer
@@ -307,6 +354,9 @@ class $$QuotesTableFilterComposer
 
   ColumnFilters<DateTime> get fetchedAt => $composableBuilder(
       column: $table.fetchedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnFilters(column));
 }
 
 class $$QuotesTableOrderingComposer
@@ -329,6 +379,9 @@ class $$QuotesTableOrderingComposer
 
   ColumnOrderings<DateTime> get fetchedAt => $composableBuilder(
       column: $table.fetchedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => ColumnOrderings(column));
 }
 
 class $$QuotesTableAnnotationComposer
@@ -351,6 +404,9 @@ class $$QuotesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get fetchedAt =>
       $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isFavorite => $composableBuilder(
+      column: $table.isFavorite, builder: (column) => column);
 }
 
 class $$QuotesTableTableManager extends RootTableManager<
@@ -380,24 +436,28 @@ class $$QuotesTableTableManager extends RootTableManager<
             Value<String> content = const Value.absent(),
             Value<String> author = const Value.absent(),
             Value<DateTime> fetchedAt = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
           }) =>
               QuotesCompanion(
             id: id,
             content: content,
             author: author,
             fetchedAt: fetchedAt,
+            isFavorite: isFavorite,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String content,
             required String author,
             Value<DateTime> fetchedAt = const Value.absent(),
+            Value<bool> isFavorite = const Value.absent(),
           }) =>
               QuotesCompanion.insert(
             id: id,
             content: content,
             author: author,
             fetchedAt: fetchedAt,
+            isFavorite: isFavorite,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

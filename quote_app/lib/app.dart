@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'features/quotes/ui/quote_screen.dart';
+import 'features/quotes/ui/home_shell.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -20,7 +20,7 @@ class App extends StatelessWidget {
         colorSchemeSeed: Colors.indigo,
         brightness: Brightness.dark,
       ),
-      home: const QuoteScreen(),
+      home: const HomeShell(),
     );
   }
 }

@@ -6,6 +6,8 @@ class Quotes extends Table {
   TextColumn get content => text()();
   TextColumn get author => text()();
   DateTimeColumn get fetchedAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isFavorite =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   List<Set<Column>> get uniqueKeys => [

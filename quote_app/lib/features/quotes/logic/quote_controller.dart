@@ -23,6 +23,16 @@ class QuoteController extends AsyncNotifier<Quote> {
       () => ref.read(quotesRepositoryProvider).getNewQuote(excludeId: currentId),
     );
   }
+
+  /// Toggles favorite on the quote currently shown. Local, no API call —
+  /// updates state directly instead of refetching.
+  Future<void> toggleFavorite() async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final dao = ref.read(databaseProvider).quotesDao;
+    final updated = await dao.toggleFavorite(current.id);
+    state = AsyncData(updated);
+  }
 }
 
 final quoteControllerProvider =
