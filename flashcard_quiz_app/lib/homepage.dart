@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-
+import '../database/database_connection/shared.dart';
 import 'flashcard_stack.dart';
 import 'flashcard.dart';
 import 'database/app_database.dart';
@@ -21,15 +21,15 @@ class _HomepageState extends State<Homepage> {
 
   bool isLoading = true;
 
-  @override
-  void initState() {
-    super.initState();
+ @override
+void initState() {
+  super.initState();
 
-    database = AppDatabase();
-    dao = FlashcardDao(database);
+  database = constructDb();
+  dao = FlashcardDao(database);
 
-    loadFlashcards();
-  }
+  loadFlashcards();
+}
 
   // ==========================================================
   // LOAD FLASHCARDS
@@ -217,39 +217,55 @@ class _HomepageState extends State<Homepage> {
               child: const Text('Cancel'),
             ),
 
-            ElevatedButton.icon(
-              onPressed: () async {
-                final question =
-                    questionController.text.trim();
+           ElevatedButton.icon(
+  onPressed: () async {
+    final question = questionController.text.trim();
+    final answer = answerController.text.trim();
 
-                final answer =
-                    answerController.text.trim();
+    // Check empty fields
+    if (question.isEmpty || answer.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please enter both a question and an answer.',
+          ),
+        ),
+      );
+      return;
+    }
 
-                if (question.isEmpty || answer.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Please enter both a question and an answer.',
-                      ),
-                    ),
-                  );
-                  return;
-                }
+    try {
+      // Add flashcard to database
+      await dao.addFlashcard(
+        question: question,
+        answer: answer,
+      );
 
-                await dao.addFlashcard(
-                  question: question,
-                  answer: answer,
-                );
+      // Make sure dialog is still open
+      if (!dialogContext.mounted) return;
 
-                if (!dialogContext.mounted) return;
+      // Close dialog
+      Navigator.of(dialogContext).pop(true);
+    } catch (e) {
+      // Show database error
+      if (!dialogContext.mounted) return;
 
-                Navigator.of(dialogContext).pop(true);
-              },
-              icon: const Icon(
-                Icons.add_rounded,
-              ),
-              label: const Text('Add'),
-            ),
+      ScaffoldMessenger.of(dialogContext).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error adding flashcard: $e',
+          ),
+        ),
+      );
+    }
+  },
+  icon: const Icon(
+    Icons.add_rounded,
+  ),
+  label: const Text(
+    'Add',
+  ),
+),
           ],
         );
       },

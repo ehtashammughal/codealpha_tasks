@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'app_theme.dart';
 import 'flashcard.dart';
@@ -128,63 +130,85 @@ class _FlashcardStackState extends State<FlashcardStack> {
       return _buildEmptyState(theme);
     }
 
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        _buildHeader(theme),
-        const SizedBox(height: 10),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final cardHeight = math.min(constraints.maxHeight * 0.96, 600.0);
+    return Focus(
+      autofocus: kIsWeb,
+      onKeyEvent: (node, event) {
+        if (!kIsWeb || event is! KeyDownEvent) {
+          return KeyEventResult.ignored;
+        }
 
-              return PageView.builder(
-                controller: _controller,
-                clipBehavior: Clip.none,
-                physics: const PageScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                itemCount: widget.cards.length,
-                onPageChanged: (i) {
-                  _index.value = i;
-                  _revealed.value = -1;
-                },
-                findChildIndexCallback: (key) {
-                  if (key is ValueKey) {
-                    final i = widget.cards.indexWhere(
-                      (c) => c.id == key.value,
+        if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+          _go(-1);
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+          _go(1);
+          return KeyEventResult.handled;
+        }
+
+        return KeyEventResult.ignored;
+      },
+      child: Column(
+        children: [
+          const SizedBox(height: 8),
+          _buildHeader(theme),
+          const SizedBox(height: 10),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final cardHeight = math.min(
+                  constraints.maxHeight * 0.96,
+                  600.0,
+                );
+
+                return PageView.builder(
+                  controller: _controller,
+                  clipBehavior: Clip.none,
+                  physics: const PageScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  itemCount: widget.cards.length,
+                  onPageChanged: (i) {
+                    _index.value = i;
+                    _revealed.value = -1;
+                  },
+                  findChildIndexCallback: (key) {
+                    if (key is ValueKey) {
+                      final i = widget.cards.indexWhere(
+                        (c) => c.id == key.value,
+                      );
+                      return i < 0 ? null : i;
+                    }
+                    return null;
+                  },
+                  itemBuilder: (context, i) {
+                    return _buildPage(
+                      index: i,
+                      screenWidth: width,
+                      cardHeight: cardHeight,
                     );
-                    return i < 0 ? null : i;
-                  }
-                  return null;
-                },
-                itemBuilder: (context, i) {
-                  return _buildPage(
-                    index: i,
-                    screenWidth: width,
-                    cardHeight: cardHeight,
-                  );
-                },
-              );
+                  },
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildSwipeHint(theme),
+          const SizedBox(height: 8),
+          ValueListenableBuilder<bool>(
+            valueListenable: AppTheme.showCardNavigationButtons,
+            builder: (context, showButtons, child) {
+              if (!showButtons) {
+                return const SizedBox(height: 8);
+              }
+
+              return _buildNavigationButtons(theme);
             },
           ),
-        ),
-        const SizedBox(height: 8),
-        _buildSwipeHint(theme),
-        const SizedBox(height: 8),
-        ValueListenableBuilder<bool>(
-          valueListenable: AppTheme.showCardNavigationButtons,
-          builder: (context, showButtons, child) {
-            if (!showButtons) {
-              return const SizedBox(height: 8);
-            }
-
-            return _buildNavigationButtons(theme);
-          },
-        ),
-        const SizedBox(height: 5),
-      ],
+          const SizedBox(height: 5),
+        ],
+      ),
     );
   }
 
@@ -403,17 +427,12 @@ class _FlashcardStackState extends State<FlashcardStack> {
           const SizedBox(height: 20),
           const Text(
             'Your deck is waiting!',
-            style: TextStyle(
-              fontSize: 23,
-              fontWeight: FontWeight.w800,
-            ),
+            style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           Text(
             'Add your first flashcard to get started.',
-            style: TextStyle(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -468,16 +487,8 @@ class _CardFace extends StatelessWidget {
           borderRadius: BorderRadius.circular(32),
           child: Stack(
             children: [
-              Positioned(
-                right: -65,
-                top: -65,
-                child: _decorationCircle(190),
-              ),
-              Positioned(
-                left: -70,
-                bottom: -80,
-                child: _decorationCircle(210),
-              ),
+              Positioned(right: -65, top: -65, child: _decorationCircle(190)),
+              Positioned(left: -70, bottom: -80, child: _decorationCircle(210)),
               Padding(
                 padding: const EdgeInsets.all(22),
                 child: Column(
@@ -514,10 +525,7 @@ class _CardFace extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(30),
@@ -525,11 +533,7 @@ class _CardFace extends StatelessWidget {
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.auto_awesome_rounded,
-                color: Colors.white,
-                size: 14,
-              ),
+              Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 14),
               SizedBox(width: 6),
               Text(
                 'FLASHCARD',
@@ -618,10 +622,7 @@ class _CardFace extends StatelessWidget {
 
   Widget _buildFooter(bool isAnswerVisible) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 11,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(17),
@@ -629,11 +630,7 @@ class _CardFace extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.touch_app_rounded,
-            color: Colors.white,
-            size: 17,
-          ),
+          const Icon(Icons.touch_app_rounded, color: Colors.white, size: 17),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
